@@ -2,9 +2,14 @@ spring:
   config:
     activate:
       on-profile: dev
+    import: optional:file:.env
   jpa:
     show-sql: true
 
 logging:
   level:
     com.mse.edu.forum: DEBUG
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}

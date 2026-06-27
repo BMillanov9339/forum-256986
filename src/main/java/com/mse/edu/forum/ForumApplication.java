@@ -1,7 +1,8 @@
 package com.mse.edu.forum;
 
-import com.mse.edu.forum.security.JwtProperties;
+import com.mse.edu.forum.config.CorsProperties;
 import com.mse.edu.forum.maintenance.RestoreProperties;
+import com.mse.edu.forum.security.JwtProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -9,7 +10,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 
 @SpringBootApplication
 @EnableMethodSecurity
-@EnableConfigurationProperties({JwtProperties.class, RestoreProperties.class})
+@EnableConfigurationProperties({JwtProperties.class, RestoreProperties.class, CorsProperties.class})
 public class ForumApplication {
 
 	public static void main(String[] args) {

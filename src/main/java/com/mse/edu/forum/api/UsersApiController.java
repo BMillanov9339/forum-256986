@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 public class UsersApiController implements UsersApi {
@@ -39,7 +40,7 @@ public class UsersApiController implements UsersApi {
 		return userService
 				.findById(id)
 				.map(ResponseEntity::ok)
-				.orElseGet(() -> ResponseEntity.notFound().build());
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 	}
 
 	@Override
@@ -57,7 +58,7 @@ public class UsersApiController implements UsersApi {
 		return userService
 				.update(id, updateUserRequest)
 				.map(ResponseEntity::ok)
-				.orElseGet(() -> ResponseEntity.notFound().build());
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 	}
 
 	@Override
@@ -67,6 +68,6 @@ public class UsersApiController implements UsersApi {
 		if (userService.delete(id)) {
 			return ResponseEntity.noContent().build();
 		}
-		return ResponseEntity.notFound().build();
+		throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
 	}
 }

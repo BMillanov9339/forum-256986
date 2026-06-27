@@ -1,13 +1,10 @@
 package com.mse.edu.forum;
 
+import com.mse.edu.forum.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class ForumApplicationTests {
+class ForumApplicationTests extends AbstractIntegrationTest {
 
 	@Test
-	void contextLoads() {
-	}
-
+	void contextLoads() {}
 }

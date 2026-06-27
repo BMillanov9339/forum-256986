@@ -5,6 +5,14 @@ spring:
   jpa:
     show-sql: false
 
+app:
+  jwt:
+    secret: test-jwt-secret-at-least-32-characters-long
+    expiration-ms: 3600000
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+
 logging:
   level:
     com.mse.edu.forum: INFO
