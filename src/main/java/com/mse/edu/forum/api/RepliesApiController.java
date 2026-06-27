@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 public class RepliesApiController implements RepliesApi {
@@ -36,7 +37,7 @@ public class RepliesApiController implements RepliesApi {
 		return replyService
 				.findById(id)
 				.map(ResponseEntity::ok)
-				.orElseGet(() -> ResponseEntity.notFound().build());
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reply not found"));
 	}
 
 	@Override

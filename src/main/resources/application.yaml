@@ -23,6 +23,8 @@ server:
   forward-headers-strategy: framework
 
 app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
   jwt:
     # HS256: use at least 32 bytes.
     secret: ${JWT_SECRET}

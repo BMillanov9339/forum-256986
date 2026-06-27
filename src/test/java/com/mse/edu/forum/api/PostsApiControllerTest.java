@@ -1,5 +1,7 @@
 package com.mse.edu.forum.api;
 
+import static com.mse.edu.forum.support.ApiTestSupport.extractLongField;
+import static com.mse.edu.forum.support.ApiTestSupport.loginAndGetToken;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -8,61 +10,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.mse.edu.forum.maintenance.RestoreMaintenanceState;
 import com.mse.edu.forum.repo.PostRepository;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.mse.edu.forum.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@Testcontainers
-class PostsApiControllerTest {
-
-	@Container
-	static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-			.withDatabaseName("forum")
-			.withUsername("admin")
-			.withPassword("admin");
-
-	@DynamicPropertySource
-	static void configureDataSource(DynamicPropertyRegistry registry) {
-		registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-		registry.add("spring.datasource.username", POSTGRES::getUsername);
-		registry.add("spring.datasource.password", POSTGRES::getPassword);
-		registry.add("spring.datasource.driver-class-name", POSTGRES::getDriverClassName);
-	}
-
-	@Autowired
-	private MockMvc mockMvc;
+class PostsApiControllerTest extends AbstractIntegrationTest {
 
 	@Autowired
 	private PostRepository postRepository;
 
-	@Autowired
-	private RestoreMaintenanceState restoreMaintenanceState;
-
 	@BeforeEach
 	void setUp() {
-		restoreMaintenanceState.finishRestore();
 		postRepository.deleteAll();
 	}
 
 	@Test
 	void createPostAndGetPosts() throws Exception {
-		String token = loginAndGetToken("admin", "admin");
+		String token = loginAndGetToken(mockMvc, "admin", "admin");
 
 		mockMvc.perform(post("/posts")
 						.header("Authorization", "Bearer " + token)
@@ -95,12 +63,13 @@ class PostsApiControllerTest {
 								  "content": "Should fail"
 								}
 								"""))
-				.andExpect(status().isForbidden());
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
 	}
 
 	@Test
 	void getPostById_returnsCreatedPost() throws Exception {
-		String token = loginAndGetToken("admin", "admin");
+		String token = loginAndGetToken(mockMvc, "admin", "admin");
 
 		MvcResult createResult = mockMvc.perform(post("/posts")
 						.header("Authorization", "Bearer " + token)
@@ -126,12 +95,14 @@ class PostsApiControllerTest {
 	@Test
 	void getPostById_returns404WhenMissing() throws Exception {
 		mockMvc.perform(get("/posts/{id}", 999999L))
-				.andExpect(status().isNotFound());
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.error").value("NOT_FOUND"))
+				.andExpect(jsonPath("$.message").value("Post not found"));
 	}
 
 	@Test
 	void listPosts_isPublic() throws Exception {
-		String token = loginAndGetToken("admin", "admin");
+		String token = loginAndGetToken(mockMvc, "admin", "admin");
 		mockMvc.perform(post("/posts")
 						.header("Authorization", "Bearer " + token)
 						.contentType(MediaType.APPLICATION_JSON)
@@ -151,7 +122,7 @@ class PostsApiControllerTest {
 
 	@Test
 	void listPosts_returnsInsertionOrder() throws Exception {
-		String token = loginAndGetToken("admin", "admin");
+		String token = loginAndGetToken(mockMvc, "admin", "admin");
 
 		mockMvc.perform(post("/posts")
 						.header("Authorization", "Bearer " + token)
@@ -214,41 +185,5 @@ class PostsApiControllerTest {
 
 		mockMvc.perform(get("/readyz"))
 				.andExpect(status().isOk());
-	}
-
-	private String loginAndGetToken(String username, String password) throws Exception {
-		MvcResult loginResult = mockMvc.perform(post("/auth/login")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("""
-								{
-								  "username": "%s",
-								  "password": "%s"
-								}
-								""".formatted(username, password)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.accessToken").isString())
-				.andReturn();
-
-		String body = loginResult.getResponse().getContentAsString();
-		String marker = "\"accessToken\":\"";
-		int start = body.indexOf(marker);
-		if (start < 0) {
-			throw new IllegalStateException("accessToken not found in login response: " + body);
-		}
-		start += marker.length();
-		int end = body.indexOf('"', start);
-		if (end < 0) {
-			throw new IllegalStateException("Invalid login response: " + body);
-		}
-		return body.substring(start, end);
-	}
-
-	private long extractLongField(String json, String fieldName) {
-		Pattern pattern = Pattern.compile("\"" + fieldName + "\":(\\d+)");
-		Matcher matcher = pattern.matcher(json);
-		if (!matcher.find()) {
-			throw new IllegalStateException("Field not found: " + fieldName + " in " + json);
-		}
-		return Long.parseLong(matcher.group(1));
 	}
 }

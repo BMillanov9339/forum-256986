@@ -1,0 +1,2 @@
+ALTER TABLE posts
+    ALTER COLUMN title TYPE VARCHAR(500);
