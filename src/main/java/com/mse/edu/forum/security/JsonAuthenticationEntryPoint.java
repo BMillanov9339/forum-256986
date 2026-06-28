@@ -1,6 +1,5 @@
 package com.mse.edu.forum.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mse.edu.forum.api.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,14 +8,15 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 @Component
 public class JsonAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-	private final ObjectMapper objectMapper;
+	private final JsonMapper jsonMapper;
 
-	public JsonAuthenticationEntryPoint(ObjectMapper objectMapper) {
-		this.objectMapper = objectMapper;
+	public JsonAuthenticationEntryPoint(JsonMapper jsonMapper) {
+		this.jsonMapper = jsonMapper;
 	}
 
 	@Override
@@ -25,7 +25,7 @@ public class JsonAuthenticationEntryPoint implements AuthenticationEntryPoint {
 			throws IOException {
 		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-		objectMapper.writeValue(
+		jsonMapper.writeValue(
 				response.getOutputStream(), new ApiErrorResponse("UNAUTHORIZED", "Authentication required"));
 	}
 }
