@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 public class AuthApiController implements AuthApi {
@@ -30,7 +31,7 @@ public class AuthApiController implements AuthApi {
 			return ResponseEntity.ok(authService.login(loginRequest));
 		} catch (AuthenticationException e) {
 			log.debug("login failed: {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
 		}
 	}
 }

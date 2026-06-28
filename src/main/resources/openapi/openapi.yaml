@@ -42,6 +42,12 @@ paths:
                 $ref: "#/components/schemas/LoginResponse"
         "401":
           description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
   /posts:
     get:
@@ -76,6 +82,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PostResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
   /posts/{id}:
     get:
@@ -99,6 +111,10 @@ paths:
                 $ref: "#/components/schemas/PostResponse"
         "404":
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /posts/{postId}/replies:
     get:
@@ -151,6 +167,16 @@ paths:
                 $ref: "#/components/schemas/ReplyResponse"
         "404":
           description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
   /replies/{id}:
     get:
@@ -209,6 +235,16 @@ paths:
                 $ref: "#/components/schemas/UserResponse"
         "409":
           description: Username or email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
   /users/{id}:
     get:
@@ -280,6 +316,26 @@ paths:
 
 components:
 
+  responses:
+    BadRequest:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -287,6 +343,19 @@ components:
       bearerFormat: JWT
 
   schemas:
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          description: Human-readable detail
+          example: username must not be blank
+
     LoginRequest:
       type: object
       required: [username, password]

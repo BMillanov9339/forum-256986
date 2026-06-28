@@ -22,3 +22,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend       # Казва на Docker да влезе в папка frontend
+      dockerfile: Dockerfile    # И да изпълни Dockerfile, който е вътре
+    ports:
+      - "5173:5173"             # Свързва портовете (локален:контейнер)
+    volumes:
+      # Синхронизира локалната папка frontend с папката /app в контейнера
+      - ./frontend/:/app/
+      # Предотвратява презаписването на node_modules вътре в контейнера
+      - /app/node_modules
+    environment:
+      - WATCHPACK_POLLING=true  # Гарантира, че Vite ще улови промените по кода
+      - VITE_API_BASE_URL=http://localhost:9000
