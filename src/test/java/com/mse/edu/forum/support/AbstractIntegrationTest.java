@@ -10,20 +10,20 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 @ActiveProfiles("test")
 public abstract class AbstractIntegrationTest {
 
-	@Container
 	static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
 			.withDatabaseName("forum")
 			.withUsername("forum_app")
-			.withPassword("forum_app");
+			.withPassword("test123");
+
+	static {
+		POSTGRES.start();
+	}
 
 	@DynamicPropertySource
 	static void configureDataSource(DynamicPropertyRegistry registry) {
