@@ -76,11 +76,38 @@ Authentication hardening:
 
 ### Run everything with Docker
 
-After creating `.env` from `.env.example`, start PostgreSQL, Adminer, the Spring
-Boot backend, and the Vite frontend with one command:
+Prerequisites:
+
+- Docker Desktop (or Docker Engine with Compose v2) must be running and configured
+  to use Linux containers.
+- Run the commands below from the project root, where `docker-compose.yaml` is
+  located.
+- Ports `5432`, `5173`, `9000`, and `8090` must not be in use by another
+  application.
+- Internet access is required for the first build to download base images and
+  Maven/npm dependencies. Later runs can use the locally cached images.
+- A valid `.env` file must exist. Create it from `.env.example` and review its
+  database credentials and secrets. `JWT_SECRET` must contain at least 32 bytes,
+  and `APP_BOOTSTRAP_ADMIN_PASSWORD` must contain 12–72 UTF-8 bytes.
+
+You can validate the resolved Compose configuration without starting the services:
+
+```bash
+docker compose config
+```
+
+Start PostgreSQL, Adminer, the Spring Boot backend, and the Vite frontend, building
+or refreshing the application images as needed:
 
 ```bash
 docker compose up --build
+```
+
+If the application images are already built and the source has not changed, start
+the stack without rebuilding:
+
+```bash
+docker compose up
 ```
 
 Compose waits for PostgreSQL to become healthy before starting the backend, runs
