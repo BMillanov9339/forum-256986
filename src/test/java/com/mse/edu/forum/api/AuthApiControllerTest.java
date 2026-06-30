@@ -2,6 +2,7 @@ package com.mse.edu.forum.api;
 
 import static com.mse.edu.forum.support.ApiTestSupport.loginAndGetToken;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,8 +18,8 @@ class AuthApiControllerTest extends AbstractIntegrationTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
-								  "username": "admin",
-								  "password": "admin"
+								  "identifier": "admin",
+								  "password": "test-admin-password"
 								}
 								"""))
 				.andExpect(status().isOk())
@@ -33,7 +34,7 @@ class AuthApiControllerTest extends AbstractIntegrationTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
-								  "username": "admin",
+								  "identifier": "admin",
 								  "password": "wrong-password"
 								}
 								"""))
@@ -43,12 +44,32 @@ class AuthApiControllerTest extends AbstractIntegrationTest {
 	}
 
 	@Test
+	void repeatedFailedLoginsAreRateLimited() throws Exception {
+		for (int attempt = 0; attempt < 10; attempt++) {
+			mockMvc.perform(post("/auth/login")
+							.contentType(MediaType.APPLICATION_JSON)
+							.content("""
+									{"identifier":"rate-limit-target","password":"wrong-password"}
+									"""))
+					.andExpect(status().isUnauthorized());
+		}
+
+		mockMvc.perform(post("/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"identifier":"rate-limit-target","password":"wrong-password"}
+								"""))
+				.andExpect(status().isTooManyRequests())
+				.andExpect(jsonPath("$.error").value("RATE_LIMITED"));
+	}
+
+	@Test
 	void login_returns400ForBlankUsername() throws Exception {
 		mockMvc.perform(post("/auth/login")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
-								  "username": "",
+								  "identifier": "",
 								  "password": "admin"
 								}
 								"""))
@@ -58,9 +79,69 @@ class AuthApiControllerTest extends AbstractIntegrationTest {
 
 	@Test
 	void loginAndGetToken_helperWorks() throws Exception {
-		String token = loginAndGetToken(mockMvc, "admin", "admin");
-		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/posts")
+		String token = loginAndGetToken(mockMvc, "admin", "test-admin-password");
+		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/topics")
 						.header("Authorization", "Bearer " + token))
 				.andExpect(status().isOk());
+	}
+
+	@Test
+	void currentUser_returnsDatabaseIdentity() throws Exception {
+		String token = loginAndGetToken(mockMvc, "admin", "test-admin-password");
+
+		mockMvc.perform(get("/auth/me").header("Authorization", "Bearer " + token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.username").value("admin"))
+				.andExpect(jsonPath("$.role").value("ADMIN"));
+	}
+
+	@Test
+	void malformedJson_usesStableErrorEnvelopeAndRequestId() throws Exception {
+		mockMvc.perform(post("/auth/login")
+						.header("X-Request-ID", "test-request-123")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("MALFORMED_REQUEST"))
+				.andExpect(jsonPath("$.requestId").value("test-request-123"))
+				.andExpect(jsonPath("$.fieldErrors").isMap());
+	}
+
+	@Test
+	void registrationCreatesRegularUserWhoCanLoginByUsernameOrEmail() throws Exception {
+		mockMvc.perform(post("/auth/register")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "username": "newmember",
+								  "email": "NewMember@example.com",
+								  "password": "password1"
+								}
+								"""))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.username").value("newmember"))
+				.andExpect(jsonPath("$.email").value("newmember@example.com"))
+				.andExpect(jsonPath("$.role").value("USER"));
+
+		loginAndGetToken(mockMvc, "newmember", "password1");
+		loginAndGetToken(mockMvc, "NEWMEMBER@EXAMPLE.COM", "password1");
+	}
+
+	@Test
+	void registrationRejectsDuplicateEmailIgnoringCase() throws Exception {
+		mockMvc.perform(post("/auth/register")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"username":"firstmember","email":"member@example.com","password":"password1"}
+								"""))
+				.andExpect(status().isCreated());
+
+		mockMvc.perform(post("/auth/register")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"username":"secondmember","email":"MEMBER@example.com","password":"password1"}
+								"""))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.message").value("Email already in use"));
 	}
 }

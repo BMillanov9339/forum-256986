@@ -1,6 +1,6 @@
 package com.mse.edu.forum.security;
 
-import com.mse.edu.forum.domain.UserRole;
+import com.mse.edu.forum.repo.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -19,9 +19,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	private final JwtService jwtService;
+	private final UserRepository userRepository;
 
-	public JwtAuthenticationFilter(JwtService jwtService) {
+	public JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository) {
 		this.jwtService = jwtService;
+		this.userRepository = userRepository;
 	}
 
 	@Override
@@ -36,17 +38,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			if (!token.isEmpty()) {
 				try {
 					Claims claims = jwtService.parseAndValidate(token);
-					String username = claims.getSubject();
 					Long uid = claims.get("uid", Long.class);
-					String roleName = claims.get("role", String.class);
-					if (username != null && uid != null && roleName != null) {
-						UserRole role = UserRole.valueOf(roleName);
-						ForumUserDetails principal = ForumUserDetails.fromJwt(uid, username, role);
+					Integer version = claims.get("ver", Integer.class);
+					if (uid != null && version != null) {
+						var user = userRepository.findById(uid).orElse(null);
+						if (user != null && user.getAuthVersion() == version) {
+							ForumUserDetails principal = ForumUserDetails.fromEntity(user);
 						var auth = new UsernamePasswordAuthenticationToken(
 								principal, null, principal.getAuthorities());
 						SecurityContextHolder.getContext().setAuthentication(auth);
+						}
 					}
-				} catch (JwtException ignored) {
+				} catch (JwtException | IllegalArgumentException ignored) {
 					SecurityContextHolder.clearContext();
 				}
 			}

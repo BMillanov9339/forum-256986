@@ -16,10 +16,12 @@ public class ForumUserDetailsService implements UserDetailsService {
 	}
 
 	@Override
-	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		return userRepository
-				.findByUsername(username)
+	public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+		var user = identifier != null && identifier.contains("@")
+				? userRepository.findByEmailIgnoreCase(identifier.trim())
+				: userRepository.findByUsernameIgnoreCase(identifier == null ? "" : identifier.trim());
+		return user
 				.map(ForumUserDetails::fromEntity)
-				.orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+				.orElseThrow(() -> new UsernameNotFoundException("User not found"));
 	}
 }

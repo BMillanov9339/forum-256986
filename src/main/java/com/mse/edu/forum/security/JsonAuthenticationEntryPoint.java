@@ -1,6 +1,7 @@
 package com.mse.edu.forum.security;
 
 import com.mse.edu.forum.api.ApiErrorResponse;
+import com.mse.edu.forum.api.RequestIdFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -26,6 +27,7 @@ public class JsonAuthenticationEntryPoint implements AuthenticationEntryPoint {
 		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		jsonMapper.writeValue(
-				response.getOutputStream(), new ApiErrorResponse("UNAUTHORIZED", "Authentication required"));
+				response.getOutputStream(),
+				new ApiErrorResponse("UNAUTHORIZED", "Authentication required", RequestIdFilter.get(request)));
 	}
 }

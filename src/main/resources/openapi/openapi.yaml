@@ -2,20 +2,20 @@ openapi: 3.0.3
 
 info:
   title: Forum API
-  description: REST API for forum posts and users (JWT bearer auth).
+  description: REST API for forum topics and users (JWT bearer auth).
   version: 1.0.0
 
 servers:
-  - url: http://localhost:9000
+  - url: http://localhost:9000/api/v1
     description: Local
 
 tags:
   - name: Auth
     description: Authentication
-  - name: Posts
-    description: Post operations
+  - name: Topics
+    description: Topic operations
   - name: Replies
-    description: Replies on posts
+    description: Replies on topics
   - name: Users
     description: User operations
 
@@ -25,7 +25,7 @@ paths:
     post:
       tags: [Auth]
       operationId: login
-      summary: Obtain a JWT (username + password)
+      summary: Obtain a JWT using username or email plus password
       security: []
       requestBody:
         required: true
@@ -42,6 +42,45 @@ paths:
                 $ref: "#/components/schemas/LoginResponse"
         "401":
           description: Invalid credentials
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      operationId: register
+      summary: Register a regular user account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "409":
+          description: Username or email already in use
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      operationId: getCurrentUser
+      summary: Return the currently authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
           content:
             application/json:
               schema:
@@ -49,39 +88,40 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
-  /posts:
+  /topics:
     get:
-      tags: [Posts]
-      operationId: listPosts
-      summary: List all posts
+      tags: [Topics]
+      operationId: listTopics
+      summary: List topics
       security: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/PostResponse"
+                $ref: "#/components/schemas/TopicPage"
 
     post:
-      tags: [Posts]
-      operationId: createPost
-      summary: Create a post
+      tags: [Topics]
+      operationId: createTopic
+      summary: Create a topic
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreatePostRequest"
+              $ref: "#/components/schemas/CreateTopicRequest"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PostResponse"
+                $ref: "#/components/schemas/TopicResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -89,11 +129,11 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
-  /posts/{id}:
+  /topics/{id}:
     get:
-      tags: [Posts]
-      operationId: getPostById
-      summary: Get post by id
+      tags: [Topics]
+      operationId: getTopicById
+      summary: Open a topic and load ten replies
       security: []
       parameters:
         - name: id
@@ -102,51 +142,96 @@ paths:
           schema:
             type: integer
             format: int64
+        - name: replyPage
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         "200":
           description: Found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PostResponse"
+                $ref: "#/components/schemas/TopicDetails"
         "404":
           description: Not found
+    put:
+      tags: [Topics]
+      operationId: updateTopic
+      summary: Update a topic as its author or a moderator
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTopicRequest"
+      responses:
+        "200":
+          description: Updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: "#/components/schemas/TopicResponse"
+        "404": {description: Not found}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    delete:
+      tags: [Topics]
+      operationId: deleteTopic
+      summary: Delete a topic as its author or a moderator
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteContentRequest"
+      responses:
+        "204": {description: Deleted}
+        "404": {description: Not found}
+        "403": {$ref: "#/components/responses/Forbidden"}
 
-  /posts/{postId}/replies:
+  /topics/{topicId}/replies:
     get:
       tags: [Replies]
-      operationId: listRepliesForPost
-      summary: List replies for a post
+      operationId: listRepliesForTopic
+      summary: List replies for a topic
       security: []
       parameters:
-        - name: postId
+        - name: topicId
           in: path
           required: true
           schema:
             type: integer
             format: int64
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/ReplyPageSize"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ReplyResponse"
+                $ref: "#/components/schemas/ReplyPage"
         "404":
-          description: Post not found
+          description: Topic not found
 
     post:
       tags: [Replies]
       operationId: createReply
-      summary: Create a reply on a post
+      summary: Create a reply on a topic
       parameters:
-        - name: postId
+        - name: topicId
           in: path
           required: true
           schema:
@@ -166,7 +251,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ReplyResponse"
         "404":
-          description: Post not found
+          description: Topic not found
           content:
             application/json:
               schema:
@@ -177,6 +262,25 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "400":
           $ref: "#/components/responses/BadRequest"
+
+  /topics/{id}/purge:
+    delete:
+      tags: [Topics]
+      operationId: purgeTopic
+      summary: Irreversibly purge a topic (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/DeleteContentRequest"}
+      responses:
+        "204": {description: Purged}
+        "403": {$ref: "#/components/responses/Forbidden"}
 
   /replies/{id}:
     get:
@@ -200,21 +304,84 @@ paths:
                 $ref: "#/components/schemas/ReplyResponse"
         "404":
           description: Not found
+    put:
+      tags: [Replies]
+      operationId: updateReply
+      summary: Update a reply as its author or a moderator
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateReplyRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReplyResponse"
+        "404": {description: Not found}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    delete:
+      tags: [Replies]
+      operationId: deleteReply
+      summary: Delete a reply as its author or a moderator
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteContentRequest"
+      responses:
+        "204": {description: Deleted}
+        "404": {description: Not found}
+        "403": {$ref: "#/components/responses/Forbidden"}
+
+  /replies/{id}/purge:
+    delete:
+      tags: [Replies]
+      operationId: purgeReply
+      summary: Irreversibly purge a reply (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/DeleteContentRequest"}
+      responses:
+        "204": {description: Purged}
+        "403": {$ref: "#/components/responses/Forbidden"}
 
   /users:
     get:
       tags: [Users]
       operationId: listUsers
       summary: List all users
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/UserResponse"
+                $ref: "#/components/schemas/UserPage"
 
     post:
       tags: [Users]
@@ -246,6 +413,67 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
+  /users/me:
+    put:
+      tags: [Users]
+      operationId: updateCurrentUser
+      summary: Update the current user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "409": {description: Username or email already in use}
+
+  /users/me/password:
+    put:
+      tags: [Users]
+      operationId: changeCurrentUserPassword
+      summary: Change the current user's password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "204": {description: Password changed; existing tokens are invalidated}
+        "400": {$ref: "#/components/responses/BadRequest"}
+
+  /users/{id}/role:
+    put:
+      tags: [Users]
+      operationId: changeUserRole
+      summary: Promote or demote a moderator
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeRoleRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {description: User not found}
+
   /users/{id}:
     get:
       tags: [Users]
@@ -271,7 +499,7 @@ paths:
     put:
       tags: [Users]
       operationId: updateUser
-      summary: Update a user
+      summary: Update a user (admin only)
       parameters:
         - name: id
           in: path
@@ -316,6 +544,31 @@ paths:
 
 components:
 
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    PageSize:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    ReplyPageSize:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+
   responses:
     BadRequest:
       description: Validation failed
@@ -345,7 +598,7 @@ components:
   schemas:
     ErrorResponse:
       type: object
-      required: [error, message]
+      required: [error, message, requestId]
       properties:
         error:
           type: string
@@ -355,15 +608,22 @@ components:
           type: string
           description: Human-readable detail
           example: username must not be blank
+        requestId:
+          type: string
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: string
 
     LoginRequest:
       type: object
-      required: [username, password]
+      required: [identifier, password]
       properties:
-        username:
+        identifier:
           type: string
           minLength: 1
-          maxLength: 100
+          maxLength: 320
+          pattern: '.*\S.*'
         password:
           type: string
           minLength: 1
@@ -382,6 +642,72 @@ components:
           type: integer
           format: int64
 
+    RegisterRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: '^[A-Za-z0-9._-]+$'
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+
+    UpdateProfileRequest:
+      type: object
+      required: [username, email]
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: '^[A-Za-z0-9._-]+$'
+        email:
+          type: string
+          format: email
+          maxLength: 320
+
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          minLength: 1
+          maxLength: 128
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 72
+
+    ChangeRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [MODERATOR, USER]
+
+    DeleteContentRequest:
+      type: object
+      properties:
+        reasonCode:
+          type: string
+          maxLength: 64
+        note:
+          type: string
+          maxLength: 1000
+        userNotified:
+          type: boolean
+          default: false
+
     UserRole:
       type: string
       description: USER denotes a regular (non-privileged) account.
@@ -395,6 +721,7 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+          pattern: '^[A-Za-z0-9._-]+$'
         email:
           type: string
           format: email
@@ -415,6 +742,7 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+          pattern: '^[A-Za-z0-9._-]+$'
         email:
           type: string
           format: email
@@ -447,19 +775,23 @@ components:
           type: string
           format: date-time
 
-    CreatePostRequest:
+    CreateTopicRequest:
       type: object
       required: [title, content]
       properties:
         title:
           type: string
+          minLength: 1
           maxLength: 500
+          pattern: '.*\S.*'
         content:
           type: string
+          minLength: 1
           maxLength: 10000
-    PostResponse:
+          pattern: '.*\S.*'
+    TopicResponse:
       type: object
-      required: [id, title, content, createdAt]
+      required: [id, title, content, authorId, authorUsername, authorRole, createdAt, updatedAt, viewCount, deleted]
       properties:
         id:
           type: integer
@@ -468,9 +800,28 @@ components:
           type: string
         content:
           type: string
+        authorId:
+          type: integer
+          format: int64
+        authorUsername:
+          type: string
+        authorRole:
+          $ref: "#/components/schemas/UserRole"
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        viewCount:
+          type: integer
+          format: int64
+        deleted:
+          type: boolean
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
 
     CreateReplyRequest:
       type: object
@@ -479,22 +830,113 @@ components:
         content:
           type: string
           maxLength: 10000
+          minLength: 1
+          pattern: '.*\S.*'
+
+    UpdateTopicRequest:
+      type: object
+      required: [title, content]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+          pattern: '.*\S.*'
+        content:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          pattern: '.*\S.*'
+
+    UpdateReplyRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          pattern: '.*\S.*'
 
     ReplyResponse:
       type: object
-      required: [id, postId, content, createdAt]
+      required: [id, topicId, content, authorId, authorUsername, authorRole, createdAt, updatedAt, deleted]
       properties:
         id:
           type: integer
           format: int64
-        postId:
+        topicId:
           type: integer
           format: int64
         content:
           type: string
+        authorId:
+          type: integer
+          format: int64
+        authorUsername:
+          type: string
+        authorRole:
+          $ref: "#/components/schemas/UserRole"
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deleted:
+          type: boolean
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    PageMetadata:
+      type: object
+      required: [page, size, totalElements, totalPages]
+      properties:
+        page: {type: integer, format: int32}
+        size: {type: integer, format: int32}
+        totalElements: {type: integer, format: int64}
+        totalPages: {type: integer, format: int32}
+
+    TopicPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: {$ref: "#/components/schemas/TopicResponse"}
+
+    ReplyPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: {$ref: "#/components/schemas/ReplyResponse"}
+
+    TopicDetails:
+      type: object
+      required: [topic, replies]
+      properties:
+        topic:
+          $ref: "#/components/schemas/TopicResponse"
+        replies:
+          $ref: "#/components/schemas/ReplyPage"
+
+    UserPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: {$ref: "#/components/schemas/UserResponse"}
 
 security:
   - bearerAuth: []

@@ -1,6 +1,7 @@
 package com.mse.edu.forum.security;
 
 import com.mse.edu.forum.api.ApiErrorResponse;
+import com.mse.edu.forum.api.RequestIdFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -25,6 +26,8 @@ public class JsonAccessDeniedHandler implements AccessDeniedHandler {
 			throws IOException {
 		response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-		jsonMapper.writeValue(response.getOutputStream(), new ApiErrorResponse("FORBIDDEN", "Access denied"));
+		jsonMapper.writeValue(
+				response.getOutputStream(),
+				new ApiErrorResponse("FORBIDDEN", "Access denied", RequestIdFilter.get(request)));
 	}
 }

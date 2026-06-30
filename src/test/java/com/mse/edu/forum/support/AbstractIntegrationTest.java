@@ -32,6 +32,7 @@ public abstract class AbstractIntegrationTest {
 		registry.add("spring.datasource.password", POSTGRES::getPassword);
 		registry.add("spring.datasource.driver-class-name", POSTGRES::getDriverClassName);
 		registry.add("app.jwt.secret", () -> "test-jwt-secret-at-least-32-characters-long");
+		registry.add("app.bootstrap-admin.password", () -> "test-admin-password");
 	}
 
 	@Autowired

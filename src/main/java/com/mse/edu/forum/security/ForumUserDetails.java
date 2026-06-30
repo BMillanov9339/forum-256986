@@ -15,29 +15,28 @@ public class ForumUserDetails implements UserDetails {
 	private final String passwordHash;
 	private final UserRole domainRole;
 	private final boolean loginAllowed;
+	private final int authVersion;
 
 	public ForumUserDetails(
 			long id,
 			String username,
 			String passwordHash,
 			UserRole domainRole,
-			boolean loginAllowed) {
+			boolean loginAllowed,
+			int authVersion) {
 		this.id = id;
 		this.username = username;
 		this.passwordHash = passwordHash == null ? "" : passwordHash;
 		this.domainRole = domainRole;
 		this.loginAllowed = loginAllowed;
+		this.authVersion = authVersion;
 	}
 
 	public static ForumUserDetails fromEntity(UserEntity entity) {
 		String hash = entity.getPasswordHash();
 		boolean canLogin = hash != null && !hash.isEmpty();
 		return new ForumUserDetails(
-				entity.getId(), entity.getUsername(), hash == null ? "" : hash, entity.getRole(), canLogin);
-	}
-
-	public static ForumUserDetails fromJwt(long userId, String username, UserRole role) {
-		return new ForumUserDetails(userId, username, "", role, true);
+				entity.getId(), entity.getUsername(), hash == null ? "" : hash, entity.getRole(), canLogin, entity.getAuthVersion());
 	}
 
 	public long getId() {
@@ -46,6 +45,10 @@ public class ForumUserDetails implements UserDetails {
 
 	public UserRole getDomainRole() {
 		return domainRole;
+	}
+
+	public int getAuthVersion() {
+		return authVersion;
 	}
 
 	@Override

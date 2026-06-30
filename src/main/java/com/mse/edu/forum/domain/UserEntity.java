@@ -42,6 +42,11 @@ public class UserEntity {
 	@Column(name = "password_hash")
 	private String passwordHash;
 
+	@Column(name = "auth_version", nullable = false)
+	private int authVersion;
+
+	private Instant anonymizedAt;
+
 	@PrePersist
 	void onCreate() {
 		if (createdAt == null) {

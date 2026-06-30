@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
+import com.mse.edu.forum.api.RequestIdFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -26,6 +27,7 @@ public class SecurityConfig {
 			JsonAuthenticationEntryPoint authenticationEntryPoint,
 			JsonAccessDeniedHandler accessDeniedHandler,
 			RestoreMaintenanceFilter restoreMaintenanceFilter,
+			RequestIdFilter requestIdFilter,
 			JwtAuthenticationFilter jwtFilter)
 			throws Exception {
 		http.cors(cors -> cors.configurationSource(corsConfigurationSource));
@@ -37,8 +39,8 @@ public class SecurityConfig {
 		http.formLogin(AbstractHttpConfigurer::disable);
 		http.httpBasic(AbstractHttpConfigurer::disable);
 		http.authorizeHttpRequests(auth -> auth
-				.requestMatchers("/auth/login").permitAll()
-				.requestMatchers(HttpMethod.GET, "/posts", "/posts/**").permitAll()
+				.requestMatchers("/auth/login", "/auth/register").permitAll()
+				.requestMatchers(HttpMethod.GET, "/topics", "/topics/**").permitAll()
 				.requestMatchers(HttpMethod.GET, "/replies", "/replies/**").permitAll()
 				.requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
 				.requestMatchers("/livez", "/readyz").permitAll()
@@ -47,6 +49,7 @@ public class SecurityConfig {
 				.anyRequest()
 				.authenticated());
 		http.addFilterBefore(restoreMaintenanceFilter, UsernamePasswordAuthenticationFilter.class);
+		http.addFilterBefore(requestIdFilter, RestoreMaintenanceFilter.class);
 		http.addFilterAfter(jwtFilter, RestoreMaintenanceFilter.class);
 		return http.build();
 	}

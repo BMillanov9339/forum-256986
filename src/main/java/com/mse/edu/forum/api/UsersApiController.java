@@ -6,7 +6,10 @@ import com.mse.edu.forum.api.generated.model.UpdateUserRequest;
 import com.mse.edu.forum.api.generated.model.UserResponse;
 import com.mse.edu.forum.service.UserService;
 import jakarta.validation.Valid;
-import java.util.List;
+import com.mse.edu.forum.api.generated.model.UserPage;
+import com.mse.edu.forum.api.generated.model.UpdateProfileRequest;
+import com.mse.edu.forum.api.generated.model.ChangePasswordRequest;
+import com.mse.edu.forum.api.generated.model.ChangeRoleRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
@@ -28,19 +31,16 @@ public class UsersApiController implements UsersApi {
 
 	@Override
 	@PreAuthorize("hasAnyRole('ADMIN','MODERATOR')")
-	public ResponseEntity<List<UserResponse>> listUsers() {
+	public ResponseEntity<UserPage> listUsers(Integer page, Integer size) {
 		log.debug("listUsers invoked");
-		return ResponseEntity.ok(userService.findAll());
+		return ResponseEntity.ok(userService.findAll(page, size));
 	}
 
 	@Override
 	@PreAuthorize("hasAnyRole('ADMIN','MODERATOR') or @userSecurity.isSelf(#id)")
 	public ResponseEntity<UserResponse> getUserById(Long id) {
 		log.debug("getUserById invoked id={}", id);
-		return userService
-				.findById(id)
-				.map(ResponseEntity::ok)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		return ResponseEntity.ok(userService.findById(id));
 	}
 
 	@Override
@@ -52,22 +52,36 @@ public class UsersApiController implements UsersApi {
 	}
 
 	@Override
-	@PreAuthorize("hasRole('ADMIN') or @userSecurity.isSelf(#id)")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<UserResponse> updateUser(Long id, @Valid UpdateUserRequest updateUserRequest) {
 		log.debug("updateUser invoked id={}", id);
-		return userService
-				.update(id, updateUserRequest)
-				.map(ResponseEntity::ok)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		return ResponseEntity.ok(userService.update(id, updateUserRequest));
 	}
 
 	@Override
 	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<Void> deleteUser(Long id) {
 		log.debug("deleteUser invoked id={}", id);
-		if (userService.delete(id)) {
-			return ResponseEntity.noContent().build();
-		}
-		throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+		userService.delete(id);
+		return ResponseEntity.noContent().build();
+	}
+
+	@Override
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<UserResponse> updateCurrentUser(@Valid UpdateProfileRequest request) {
+		return ResponseEntity.ok(userService.updateCurrentProfile(request));
+	}
+
+	@Override
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<Void> changeCurrentUserPassword(@Valid ChangePasswordRequest request) {
+		userService.changeCurrentPassword(request);
+		return ResponseEntity.noContent().build();
+	}
+
+	@Override
+	@PreAuthorize("hasRole('ADMIN')")
+	public ResponseEntity<UserResponse> changeUserRole(Long id, @Valid ChangeRoleRequest request) {
+		return ResponseEntity.ok(userService.changeRole(id, request));
 	}
 }
