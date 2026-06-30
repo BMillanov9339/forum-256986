@@ -2,7 +2,8 @@ spring:
   config:
     activate:
       on-profile: dev
-    import: optional:file:.env
+    # Treat the extensionless dotenv file as Java properties.
+    import: optional:file:.env[.properties]
   jpa:
     show-sql: true
 

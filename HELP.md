@@ -41,6 +41,37 @@ Profile files:
 No passwords are stored in any `application*.yaml`.  
 Secrets are provided only via environment variables.
 
+Credential validation applied at startup:
+
+- `APP_BOOTSTRAP_ADMIN_USERNAME` must contain 1–100 letters, digits, dots,
+  underscores, or hyphens.
+- `APP_BOOTSTRAP_ADMIN_EMAIL`, when provided, must be a valid email address of at
+  most 320 characters.
+- `APP_BOOTSTRAP_ADMIN_PASSWORD` must contain 12–72 UTF-8 bytes and must not contain
+  the rejected placeholder markers `change-me` or `replace-me`.
+- `JWT_SECRET` must contain at least 32 UTF-8 bytes and must not contain
+  `change-me` or `replace-me`.
+- `JWT_EXPIRATION_MS` must be between 60,000 and 86,400,000 milliseconds.
+
+User passwords supplied through the API use a separate policy: 8 or more characters
+and no more than 72 UTF-8 bytes, matching bcrypt's input limit. Login accepts a
+username or email; usernames are limited to letters, digits, `.`, `_`, and `-`, and
+emails must be syntactically valid.
+
+Authentication hardening:
+
+- Ten failed logins against one account in five minutes are rejected with HTTP 429.
+- Thirty failed logins from one address in five minutes are rejected with HTTP 429.
+- Registration is limited to five attempts per address per hour.
+- These development-safe counters are process-local. A multi-instance deployment
+  should replace or supplement them with a shared gateway/Redis-backed limiter.
+- Browser access tokens are kept in memory and are therefore cleared by a full page
+  reload. A future persistent-login flow should use rotating refresh tokens in
+  `HttpOnly`, `Secure`, `SameSite` cookies.
+
+`frontend/Dockerfile` runs the Vite development server. Production builds should use
+`frontend/Dockerfile.prod`, which serves static assets with nginx and security headers.
+
 ## Local (dev) run
 
 1. Create env file:
@@ -49,10 +80,18 @@ Secrets are provided only via environment variables.
 cp .env.example .env
 ```
 
-2. Set real values in `.env` for:
+2. Review the local-only values in `.env`:
 - `POSTGRES_PASSWORD`
 - `SPRING_DATASOURCE_PASSWORD`
 - `JWT_SECRET` (at least 32 chars)
+- `APP_BOOTSTRAP_ADMIN_PASSWORD` (at least 12 characters and at most 72 UTF-8 bytes)
+
+The `dev` profile loads the extensionless `.env` file as a properties file. In
+PowerShell, no manual import is required when running from the project root:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
 
 3. Start local PostgreSQL:
 
@@ -89,6 +128,9 @@ In CI/CD, inject these variables from your secret manager:
 - `SPRING_DATASOURCE_PASSWORD`
 - `JWT_SECRET`
 - `JWT_EXPIRATION_MS`
+- `APP_BOOTSTRAP_ADMIN_USERNAME`
+- `APP_BOOTSTRAP_ADMIN_EMAIL`
+- `APP_BOOTSTRAP_ADMIN_PASSWORD`
 
 ## Health, readiness, liveness, startup probes (Actuator)
 
@@ -97,24 +139,24 @@ The app now exposes production-style probe endpoints via Spring Boot Actuator.
 Public probe endpoints:
 - `/livez` -> liveness
 - `/readyz` -> readiness
-- `/actuator/health/startup` -> startup semantics
+- `/api/v1/actuator/health/startup` -> startup semantics
 
 Additional actuator health endpoints:
-- `/actuator/health`
-- `/actuator/health/liveness`
-- `/actuator/health/readiness`
-- `/actuator/health/startup`
+- `/api/v1/actuator/health`
+- `/api/v1/actuator/health/liveness`
+- `/api/v1/actuator/health/readiness`
+- `/api/v1/actuator/health/startup`
 
 Example checks:
 
 ```bash
-curl -i http://localhost:9000/livez
-curl -i http://localhost:9000/readyz
-curl -i http://localhost:9000/actuator/health/startup
+curl -i http://localhost:9000/api/v1/livez
+curl -i http://localhost:9000/api/v1/readyz
+curl -i http://localhost:9000/api/v1/actuator/health/startup
 ```
 
 Suggested probe mapping (for orchestrators like Kubernetes):
-- **startupProbe** -> `/actuator/health/startup`
+- **startupProbe** -> `/api/v1/actuator/health/startup`
 - **livenessProbe** -> `/livez`
 - **readinessProbe** -> `/readyz`
 
@@ -130,12 +172,13 @@ Typical restore flow:
 
 ```bash
 # 1) login as admin and extract token
-TOKEN="$(curl -sS -X POST 'http://localhost:9000/auth/login' \
+TOKEN="$(curl -sS -X POST 'http://localhost:9000/api/v1/auth/login' \
   -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"admin"}' | jq -r '.accessToken')"
+  -d "{\"identifier\":\"${APP_BOOTSTRAP_ADMIN_USERNAME:-admin}\",\"password\":\"${APP_BOOTSTRAP_ADMIN_PASSWORD}\"}" \
+  | jq -r '.accessToken')"
 
 # 2) switch restore mode ON
-curl -sS -X POST 'http://localhost:9000/ops/restore/enable' \
+curl -sS -X POST 'http://localhost:9000/api/v1/ops/restore/enable' \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"reason":"database restore"}'
@@ -143,7 +186,7 @@ curl -sS -X POST 'http://localhost:9000/ops/restore/enable' \
 # ... run restore commands ...
 
 # 3) switch restore mode OFF
-curl -sS -X POST 'http://localhost:9000/ops/restore/disable' \
+curl -sS -X POST 'http://localhost:9000/api/v1/ops/restore/disable' \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"reason":"restore complete"}'

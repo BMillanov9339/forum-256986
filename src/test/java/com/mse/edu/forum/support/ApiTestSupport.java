@@ -19,7 +19,7 @@ public final class ApiTestSupport {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
-								  "username": "%s",
+								  "identifier": "%s",
 								  "password": "%s"
 								}
 								""".formatted(username, password)))

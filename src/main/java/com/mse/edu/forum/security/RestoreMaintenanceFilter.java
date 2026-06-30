@@ -14,6 +14,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
+import com.mse.edu.forum.api.RequestIdFilter;
 
 @Component
 public class RestoreMaintenanceFilter extends OncePerRequestFilter {
@@ -33,7 +34,7 @@ public class RestoreMaintenanceFilter extends OncePerRequestFilter {
 			@NonNull HttpServletResponse response,
 			@NonNull FilterChain filterChain)
 			throws ServletException, IOException {
-		if (!maintenanceState.isRestoreInProgress() || isAllowlisted(request.getRequestURI())) {
+		if (!maintenanceState.isRestoreInProgress() || isAllowlisted(applicationPath(request))) {
 			filterChain.doFilter(request, response);
 			return;
 		}
@@ -42,8 +43,14 @@ public class RestoreMaintenanceFilter extends OncePerRequestFilter {
 		response.setHeader(HttpHeaders.RETRY_AFTER, Long.toString(maintenanceState.getRetryAfterSeconds()));
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.getWriter().write("""
-				{"error":"RESTORE_IN_PROGRESS","message":"Service temporarily unavailable during restore"}
-				""");
+				{"error":"RESTORE_IN_PROGRESS","message":"Service temporarily unavailable during restore","requestId":"%s","fieldErrors":{}}
+				""".formatted(RequestIdFilter.get(request)));
+	}
+
+	private String applicationPath(HttpServletRequest request) {
+		String requestUri = request.getRequestURI();
+		String contextPath = request.getContextPath();
+		return contextPath.isEmpty() ? requestUri : requestUri.substring(contextPath.length());
 	}
 
 	private boolean isAllowlisted(String requestUri) {

@@ -15,11 +15,12 @@ spring:
       ddl-auto: validate
   flyway:
     locations: classpath:db/migration
-    baseline-on-migrate: true
-    baseline-description: "Existing schema (e.g. from Hibernate); adopt Flyway without re-applying V1."
+    baseline-on-migrate: false
 
 server:
   port: 9000
+  servlet:
+    context-path: /api/v1
   forward-headers-strategy: framework
 
 app:
@@ -29,6 +30,10 @@ app:
     # HS256: use at least 32 bytes.
     secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  bootstrap-admin:
+    username: ${APP_BOOTSTRAP_ADMIN_USERNAME:admin}
+    email: ${APP_BOOTSTRAP_ADMIN_EMAIL:}
+    password: ${APP_BOOTSTRAP_ADMIN_PASSWORD}
   restore:
     enabled: ${APP_RESTORE_ENABLED:false}
     retry-after-seconds: 120
