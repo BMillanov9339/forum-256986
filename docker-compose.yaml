@@ -23,17 +23,40 @@ services:
       postgres:
         condition: service_healthy
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:9000/api/v1/readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
   frontend:
     build:
-      context: ./frontend       # Казва на Docker да влезе в папка frontend
-      dockerfile: Dockerfile    # И да изпълни Dockerfile, който е вътре
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
-      - "5173:5173"             # Свързва портовете (локален:контейнер)
+      - "5173:5173"
     volumes:
-      # Синхронизира локалната папка frontend с папката /app в контейнера
       - ./frontend/:/app/
-      # Предотвратява презаписването на node_modules вътре в контейнера
       - /app/node_modules
     environment:
-      - WATCHPACK_POLLING=true  # Гарантира, че Vite ще улови промените по кода
-      - VITE_API_BASE_URL=http://localhost:9000/api/v1
+      WATCHPACK_POLLING: "true"
+      VITE_API_BASE_URL: http://localhost:9000/api/v1
+    depends_on:
+      backend:
+        condition: service_healthy

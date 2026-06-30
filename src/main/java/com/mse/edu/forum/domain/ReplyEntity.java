@@ -27,7 +27,7 @@ public class ReplyEntity {
 	@Column(name = "topic_id", nullable = false)
 	private Long topicId;
 
-	@Column(nullable = false, length = 10_000)
+	@Column(nullable = false, length = 2_000)
 	private String content;
 
 	@Column(name = "author_id", nullable = false)

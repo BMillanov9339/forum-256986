@@ -74,6 +74,28 @@ Authentication hardening:
 
 ## Local (dev) run
 
+### Run everything with Docker
+
+After creating `.env` from `.env.example`, start PostgreSQL, Adminer, the Spring
+Boot backend, and the Vite frontend with one command:
+
+```bash
+docker compose up --build
+```
+
+Compose waits for PostgreSQL to become healthy before starting the backend, runs
+Flyway migrations as part of Spring Boot startup, and waits for the backend
+readiness check before starting the frontend. The services are available at:
+
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:9000/api/v1`
+- Adminer: `http://localhost:8090`
+
+Stop the stack with `Ctrl+C`, or use `docker compose down` if it was started in
+detached mode.
+
+### Run the backend on the host
+
 1. Create env file:
 
 ```bash
