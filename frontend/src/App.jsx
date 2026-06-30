@@ -8,6 +8,8 @@ import {
 } from './api/forum.js'
 import './App.css'
 
+const EMAIL_PATTERN = "[A-Za-z0-9_%+-]+(?:\\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\\.[A-Za-z]{2,63}"
+const LOGIN_IDENTIFIER_PATTERN = `(?:[A-Za-z0-9._-]+|${EMAIL_PATTERN})`
 const privileged = (user) => ['ADMIN', 'MODERATOR'].includes(user?.role)
 const canEdit = (user, item) => user && (
   user.id === item.authorId ||
@@ -263,10 +265,10 @@ function App() {
         <form className="auth-card" onSubmit={submitAuth}>
           <h1>{authMode === 'login' ? 'Welcome back' : 'Create an account'}</h1>
           {authMode === 'register' ? <>
-            <input name="username" placeholder="Username" maxLength="100" required />
-            <input name="email" type="email" placeholder="Email" maxLength="320" required />
-          </> : <input name="identifier" placeholder="Username or email" required />}
-          <input name="password" type="password" placeholder="Password" minLength="8" maxLength="72" required />
+            <input name="username" placeholder="Username" maxLength="32" required />
+            <input name="email" type="email" placeholder="Email" maxLength="32" pattern={EMAIL_PATTERN} required />
+          </> : <input name="identifier" placeholder="Username or email" maxLength="32" pattern={LOGIN_IDENTIFIER_PATTERN} required />}
+          <input name="password" type="password" placeholder="Password" minLength="8" maxLength="32" required />
           <button className="primary">{authMode === 'login' ? 'Sign in' : 'Register'}</button>
         </form>
       )}
@@ -277,7 +279,7 @@ function App() {
           <form className="panel form-grid" onSubmit={submitProfile}>
             <h2>Account details</h2>
             <label>Username<input name="username" defaultValue={user.username} required /></label>
-            <label>Email<input name="email" type="email" defaultValue={user.email ?? ''} required /></label>
+            <label>Email<input name="email" type="email" defaultValue={user.email ?? ''} pattern={EMAIL_PATTERN} required /></label>
             <button className="primary">Save profile</button>
           </form>
           <form className="panel form-grid" onSubmit={submitPassword}>
@@ -298,7 +300,7 @@ function App() {
               <p>Create a user, moderator, or administrator.</p>
             </div>
             <input name="username" placeholder="Username" required />
-            <input name="email" type="email" placeholder="Email (optional)" />
+            <input name="email" type="email" placeholder="Email (optional)" pattern={EMAIL_PATTERN} />
             <input name="password" type="password" placeholder="Temporary password" minLength="8" maxLength="72" required />
             <select name="role" defaultValue="USER"><option>USER</option><option>MODERATOR</option><option>ADMIN</option></select>
             <button className="primary">Create user</button>
@@ -346,8 +348,8 @@ function App() {
         <article>
           {selected ? <>
             {editingTopic ? <form className="composer" onSubmit={saveTopic}>
-              <input name="title" defaultValue={selected.topic.title} required />
-              <textarea name="content" defaultValue={selected.topic.content} required />
+              <input name="title" defaultValue={selected.topic.title} maxLength="128" required />
+              <textarea name="content" defaultValue={selected.topic.content} maxLength="2000" required />
               <div className="actions"><button className="primary">Save</button><button type="button" onClick={() => setEditingTopic(false)}>Cancel</button></div>
             </form> : <div className={`topic-head ${selected.topic.deleted ? 'deleted' : ''}`}>
               <p className="eyebrow"><span className={roleClass(selected.topic.authorRole)}>{selected.topic.authorUsername}</span> · {selected.topic.viewCount} views · {new Date(selected.topic.updatedAt).toLocaleString()}</p>
@@ -364,7 +366,7 @@ function App() {
               {selected.replies.items.map((reply) => <div className={`reply ${reply.deleted ? 'deleted' : ''}`} key={reply.id}>
                 <strong className={roleClass(reply.authorRole)}>{reply.authorUsername}</strong><small>{new Date(reply.updatedAt).toLocaleString()}</small>
                 {editingReply === reply.id ? <form className="composer compact" onSubmit={(event) => saveReply(event, reply)}>
-                  <textarea name="content" defaultValue={reply.content} required />
+                  <textarea name="content" defaultValue={reply.content} maxLength="2000" required />
                   <div className="actions"><button className="primary">Save</button><button type="button" onClick={() => setEditingReply(null)}>Cancel</button></div>
                 </form> : <p>{reply.content}</p>}
                 {canEdit(user, reply) && !reply.deleted && editingReply !== reply.id && <div className="actions">
@@ -376,15 +378,15 @@ function App() {
               <Pager page={selected.replies.page} totalPages={selected.replies.totalPages}
                 onChange={(page) => refreshSelectedReplies(page)} />
               {user && !selected.topic.deleted && <form className="composer" onSubmit={submitReply}>
-                <textarea name="content" placeholder="Write a reply…" maxLength="10000" required />
+                <textarea name="content" placeholder="Write a reply…" maxLength="2000" required />
                 <button className="primary">Reply</button>
               </form>}
             </div>
           </> : <div className="empty">
             <h1>Choose a topic</h1><p>Open a conversation, or start a new one.</p>
             {user && <form className="composer new-topic" onSubmit={submitTopic}>
-              <input name="title" placeholder="Topic title" maxLength="500" required />
-              <textarea name="content" placeholder="What would you like to discuss?" maxLength="10000" required />
+              <input name="title" placeholder="Topic title" maxLength="128" required />
+              <textarea name="content" placeholder="What would you like to discuss?" maxLength="2000" required />
               <button className="primary">Create topic</button>
             </form>}
           </div>}

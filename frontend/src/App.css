@@ -1,9 +1,9 @@
 main { min-height: 100vh; background: #f5f7fb; color: #172033; }
 header { height: 68px; padding: 0 5vw; display: flex; align-items: center; justify-content: space-between; background: white; border-bottom: 1px solid #e3e7ef; }
 button, input, textarea, select { font: inherit; }
-button { cursor: pointer; border: 1px solid #d8deea; border-radius: 9px; padding: 9px 14px; background: white; color: #24304a; }
+button { cursor: pointer; border: 1px solid #d8deea; border-radius: 9px; padding: 9px 14px; background: white; color: #24304a; transition: background-color .16s ease, border-color .16s ease, color .16s ease; }
 button:disabled { cursor: default; opacity: .45; }
-.brand { border: 0; padding: 0; font-size: 22px; font-weight: 800; color: #3454d1; }
+.brand { border: 0; padding: 6px 8px; font-size: 22px; font-weight: 800; color: #3454d1; background: transparent; }
 .top-nav { display: flex; gap: 6px; }
 .top-nav button { border: 0; }
 .account { display: flex; gap: 14px; align-items: center; font-size: 14px; }
@@ -25,7 +25,7 @@ h1 { margin: 8px 0 14px; font-size: clamp(30px, 4vw, 48px); line-height: 1.08; }
 .reply p { margin: 7px 0 0; white-space: pre-wrap; }
 .deleted { opacity: .68; font-style: italic; }
 .composer { display: grid; gap: 12px; margin-top: 28px; }
-.composer input, .composer textarea, .auth-card input, .form-grid input, .inline-form input, select { border: 1px solid #ccd3e0; border-radius: 10px; padding: 12px 14px; background: white; color: #172033; }
+.composer input, .composer textarea, .auth-card input, .form-grid input, .inline-form input, select { border: 1px solid #ccd3e0; border-radius: 10px; padding: 12px 14px; background: white; color: #172033; transition: background-color .16s ease, border-color .16s ease; }
 .composer textarea { min-height: 110px; resize: vertical; }
 .composer.compact { margin-top: 12px; }
 .primary { background: #3454d1; color: white; border-color: #3454d1; justify-self: start; }
@@ -57,6 +57,20 @@ h1 { margin: 8px 0 14px; font-size: clamp(30px, 4vw, 48px); line-height: 1.08; }
 .operation-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
 .operation-row h2, .operation-row p { margin: 0; }
 .operation-row p { margin-top: 8px; color: #667085; }
+@media (hover: hover) {
+  button:not(:disabled):hover { background-color: #eef1f7; border-color: #b8c2d3; color: #172033; }
+  .brand:hover { background-color: transparent; color: #1f3ba8; }
+  .top-nav button:hover { background-color: #eef1ff; color: #2743b3; }
+  .topic-row:hover { background-color: #f1f4fa; color: #2743b3; }
+  .topic-row.active:hover { background-color: #e2e7ff; color: #1f389b; }
+  .primary:not(:disabled):hover { background-color: #2743b3; border-color: #2743b3; color: white; }
+  .danger:not(:disabled):hover { background-color: #fff0f0; border-color: #cf8589; color: #811d23; }
+  .composer input:hover, .composer textarea:hover, .auth-card input:hover,
+  .form-grid input:hover, .inline-form input:hover, select:hover {
+    background-color: #fafbfe;
+    border-color: #aeb9cb;
+  }
+}
 @media (max-width: 760px) {
   header { height: auto; min-height: 68px; flex-wrap: wrap; gap: 10px; padding-block: 10px; }
   .top-nav { order: 3; width: 100%; }

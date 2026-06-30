@@ -622,12 +622,12 @@ components:
         identifier:
           type: string
           minLength: 1
-          maxLength: 320
-          pattern: '.*\S.*'
+          maxLength: 32
+          pattern: '^(?:[A-Za-z0-9._-]+|[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,63})$'
         password:
           type: string
           minLength: 1
-          maxLength: 128
+          maxLength: 32
 
     LoginResponse:
       type: object
@@ -649,16 +649,17 @@ components:
         username:
           type: string
           minLength: 1
-          maxLength: 100
+          maxLength: 32
           pattern: '^[A-Za-z0-9._-]+$'
         email:
           type: string
           format: email
-          maxLength: 320
+          maxLength: 32
+          pattern: '^[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,63}$'
         password:
           type: string
           minLength: 8
-          maxLength: 72
+          maxLength: 32
 
     UpdateProfileRequest:
       type: object
@@ -673,6 +674,7 @@ components:
           type: string
           format: email
           maxLength: 320
+          pattern: '^[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,63}$'
 
     ChangePasswordRequest:
       type: object
@@ -726,6 +728,7 @@ components:
           type: string
           format: email
           maxLength: 320
+          pattern: '^[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,63}$'
         role:
           $ref: "#/components/schemas/UserRole"
         password:
@@ -748,6 +751,7 @@ components:
           format: email
           maxLength: 320
           nullable: true
+          pattern: '^[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,63}$'
         role:
           $ref: "#/components/schemas/UserRole"
         password:
@@ -782,12 +786,12 @@ components:
         title:
           type: string
           minLength: 1
-          maxLength: 500
+          maxLength: 128
           pattern: '.*\S.*'
         content:
           type: string
           minLength: 1
-          maxLength: 10000
+          maxLength: 2000
           pattern: '.*\S.*'
     TopicResponse:
       type: object
@@ -829,7 +833,7 @@ components:
       properties:
         content:
           type: string
-          maxLength: 10000
+          maxLength: 2000
           minLength: 1
           pattern: '.*\S.*'
 
@@ -840,12 +844,12 @@ components:
         title:
           type: string
           minLength: 1
-          maxLength: 500
+          maxLength: 128
           pattern: '.*\S.*'
         content:
           type: string
           minLength: 1
-          maxLength: 10000
+          maxLength: 2000
           pattern: '.*\S.*'
 
     UpdateReplyRequest:
@@ -855,7 +859,7 @@ components:
         content:
           type: string
           minLength: 1
-          maxLength: 10000
+          maxLength: 2000
           pattern: '.*\S.*'
 
     ReplyResponse:
